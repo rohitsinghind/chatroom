@@ -1,13 +1,13 @@
 import React,{useState, useEffect, useRef} from 'react'
 
-import {getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut} from "firebase/auth"
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut} from "firebase/auth"
 import {app} from "../../firebase"
-import {getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, orderBy} from "firebase/firestore"
+import { getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, orderBy} from "firebase/firestore"
 
-import { Box, Container, Button, HStack, VStack, Text, Input,IconButton  } from '@chakra-ui/react'
-import { ArrowRightIcon } from '@chakra-ui/icons'
+import { Box, Container, Button, HStack, VStack, Text, Input, Image} from '@chakra-ui/react'
 
 import Message from './components/Message'
+import Login from '../login'
 
 export default function Chatting() {
 
@@ -52,6 +52,17 @@ export default function Chatting() {
         }
     }}
 
+    const clearMessages = async ()=>{
+        if(message==="#delete"){
+            try {
+                setMessages([])
+            } catch (error) {
+                console.log(error)
+            }
+            
+        }
+    }
+
     useEffect(() => {
 
         const q = query(collection(db,"Messages"),orderBy("createdAt","asc"))
@@ -60,7 +71,7 @@ export default function Chatting() {
         setUser(data);
       })
 
-      const unSubscribeForMessage = onSnapshot(q,(snap)=>{
+      const unSubscribeForMessage = onSnapshot (q,(snap)=>{
         setMessages(snap.docs.map((item)=>{
             const id = item.id;
             return {id, ...item.data()}
@@ -74,13 +85,41 @@ export default function Chatting() {
 
     },[])
 
+    useEffect(() => {
+        divForScroll?.current?.scrollIntoView({behavior: "smooth"})
+    }, [messages,user])
+    
+
+    document.onkeydown = checkKey;
+
+    function checkKey(e) {
+  
+      e = e || window.event;
+  
+      if (e.keyCode === '13') {
+        submitHandler(e);
+      }
+  
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 550px)");
+
   return (
     <>
-        <Box display='flex' bg={'red.50'} h={"100vh"} alignItems='center'>
+        <Box display='flex' bg={'red.50'} h={mediaQuery.matches ?"90vh":"100vh"} alignItems='center'>
             {user?
-            <Container bg={"white"} h={'80%'}>
+            <Container p={mediaQuery.matches ?0:''} bg={"white"} h={mediaQuery.matches ?'100%':'80%'}>
                 <HStack display='flex' my={4} justifyContent='center' position={"relative"}>
-                    <Text fontSize='3xl'>Chatroom</Text>
+                    <Image
+                    onClick={clearMessages}
+                    position={"absolute"}
+                    left={"10px"}
+                    borderRadius='full'
+                    boxSize='70px'
+                    src={require("../../assets/images/icon.png")}
+                    alt='G'
+                    />
+                    <Text as='cite' color={"#004a77"} fontSize='3xl'>Chatroom</Text>
                     <Button onClick={logoutHandler} colorScheme='red' position={"absolute"} right={'10px'}>Logout</Button>
                 </HStack>
 
@@ -102,24 +141,14 @@ export default function Chatting() {
                     }
                     <div ref={divForScroll}></div>
                 </VStack>
-
+                
                 <HStack mt={"10px"}>
                     <Input value={message} onChange={(e)=>{setMessage(e.target.value)}} placeholder='Type a message' />
                     <Button onClick={submitHandler} colorScheme='green'>Send</Button>
                 </HStack>
             </Container>
             :
-            <Container bg={"white"} display={"flex"} flexDirection={"column"} justifyContent={"center"} alignItems={"center"} h={"200px"}>
-                 <Text fontSize='3xl'>Continue with Google</Text>
-                 <IconButton
-                    onClick={loginHandler}
-                    variant='outline'
-                    colorScheme='blue'
-                    aria-label='login'
-                    icon={<ArrowRightIcon />}
-                    mt={4}
-                />
-            </Container>
+           <Login loginHandler={loginHandler}/>
         }
         </Box>
     </>
